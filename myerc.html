@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>My erc20</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <script src='https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js'></script>
+</head>
+
+<body>
+
+Total supply: <span id="total_supply">Loading...</span><br>
+Name: <span id="name">Loading...</span><br>
+Symbol: <span id="symbol">Loading...</span><br><br>
+
+Users:<br><span id="users_with_balances" style="white-space:pre-wrap;">Loading...</span><br><br>
+
+Your account: <span id="account_info">Loading...</span><br><br>
+
+Transfer
+<form onsubmit="transfer();return false">
+    <label for="receiver">Address</label><br>
+    <input type="text"
+           id="receiver" name="receiver"
+           value="0xD8C7978Be2A06F5752cB727fB3B7831B70bF394d"
+           placeholder="Address to transfer"><br>
+
+    <label for="amount">Number of tokens in wei</label><br>
+    <input type="number"
+           id="amount" name="amount"
+           value="50"
+           placeholder="Number of tokens"><br>
+    <input type="submit" value="Transfer"><br>
+</form>
+Transfer result: <span id="transfer_result">No transfer for now</span><br><br>
+
+Status: <span id="status">Loading...</span>
+
+<script type="text/javascript">
+    async function loadWeb3() {
+        if (window.ethereum) {
+            window.web3 = new Web3(window.ethereum);
+            window.ethereum.enable();
+        }
+        else {
+            console.log(window.ethereum);
+            console.log("no ether");
+        }
+    }
+
+    async function loadContract() {
+        return new window.web3.eth.Contract([
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getUsers",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "address[]"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "name",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "delegate",
+                        "type": "address"
+                    },
+                    {
+                        "name": "numTokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "approve",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "totalSupply",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "receiver",
+                        "type": "address"
+                    },
+                    {
+                        "name": "numTokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "correctTransfer",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "name": "buyer",
+                        "type": "address"
+                    },
+                    {
+                        "name": "numTokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transferFrom",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "decimals",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint8"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "users",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "name": "tokenOwner",
+                        "type": "address"
+                    }
+                ],
+                "name": "balanceOf",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "symbol",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "receiver",
+                        "type": "address"
+                    },
+                    {
+                        "name": "numTokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "transfer",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [
+                    {
+                        "name": "owner",
+                        "type": "address"
+                    },
+                    {
+                        "name": "delegate",
+                        "type": "address"
+                    }
+                ],
+                "name": "allowance",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "name": "total",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "name": "tokenOwner",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "name": "spender",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "name": "tokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Approval",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "name": "from",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": true,
+                        "name": "to",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "name": "tokens",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Transfer",
+                "type": "event"
+            }
+        ], '0x7B0CC09168C4a6D5171C5097543Aba55574BAff0');
+    }
+
+    async function load() {
+        await loadWeb3();
+        window.contract = await loadContract();
+        updateStatus('Ready!');
+    }
+
+    async function getCurrentAccount() {
+        const accounts = await window.web3.eth.getAccounts();
+        return accounts[0];
+    }
+
+    function updateStatus(status) {
+        const statusEl = document.getElementById('status');
+        statusEl.innerHTML = status;
+        console.log(status);
+    }
+
+    function updateElById(id, value) {
+        const playersEl = document.getElementById(id);
+        playersEl.innerHTML = value;
+    }
+
+    async function loadTotalSupply() {
+        const totalSupply = await window.contract.methods.totalSupply().call();
+        updateElById('total_supply', totalSupply + 'wei');
+    }
+
+    async function loadName() {
+        const name = await window.contract.methods.name().call();
+        updateElById('name', name);
+    }
+
+    async function loadSymbol() {
+        const symbol = await window.contract.methods.symbol().call();
+        updateElById('symbol', symbol);
+    }
+
+    async function loadUserAndBalances() {
+        const users = await window.contract.methods.getUsers().call();
+
+        const get_balance = async (address) => {
+            const balance = await window.contract.methods.balanceOf(address).call();
+            return 'Address: ' + address + ', balance: ' + balance + 'wei';
+            };
+        Promise.all(users.map(get_balance)).then(users_with_balances => {
+            updateElById('users_with_balances', users_with_balances.join("\r\n"));
+        });
+    }
+
+    async function loadAccountData() {
+        const account = await getCurrentAccount();
+        const balance = await window.contract.methods.balanceOf(account).call();
+        updateElById('account_info', 'Address: ' + account + ', balance: ' + balance + 'wei');
+    }
+
+    async function transfer(){
+        console.log('transfer call');
+        const amount = parseInt(document.getElementById("amount").value);
+        const receiver = document.getElementById('receiver').value;
+
+        const account = await getCurrentAccount();
+        try {
+            const result = await window.contract.methods.transfer(receiver, amount).send({'from': account});
+            if (result) {
+                updateElById('transfer_result', 'Sent successfully');
+            } else {
+                updateElById('transfer_result', 'Something is wrong. Make sure you have enough tokens.');
+            }
+        } catch (e) {
+            console.log('incorrect address');
+            updateElById('transfer_result', 'Address is incorrect.');
+            console.log(e);
+        }
+    }
+
+    async function preparePage() {
+        await load();
+        await loadTotalSupply();
+        await loadName();
+        await loadSymbol();
+        setInterval(loadUserAndBalances, 1000);
+        setInterval(loadAccountData, 1000);
+    }
+    preparePage();
+
+
+</script>
+</body>
+
+</html>
