@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Smart contract lottery</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+
+    <script src='https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js'></script>
+</head>
+
+<body>
+Players: <spand id="players">Loading...</spand><br>
+Manager: <span id="manager">Loading...</span><br>
+<button onclick="enterLottery();">Enter</button><br>
+
+<span id="pickingWarning"></span>
+<button onclick="pickWinner();">PickWinner</button>
+<span id="pickingStatus"></span>
+<br>
+
+Status: <span id="status">Loading...</span>
+
+<script type="text/javascript">
+    async function loadWeb3() {
+        if (window.ethereum) {
+            window.web3 = new Web3(window.ethereum);
+            window.ethereum.enable();
+        }
+        else {
+            console.log(window.ethereum);
+            console.log("no ether");
+        }
+    }
+
+    async function loadContract() {
+        return new window.web3.eth.Contract([
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "inputs": [],
+                "name": "enter",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getPlayers",
+                "outputs": [
+                    {
+                        "internalType": "address payable[]",
+                        "name": "",
+                        "type": "address[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "manager",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "pickWinner",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "players",
+                "outputs": [
+                    {
+                        "internalType": "address payable",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ], '0xfaf8c244d673acc40f8885be639d3fe6892a073f');
+    }
+
+    async function load() {
+        await loadWeb3();
+        window.contract = await loadContract();
+        updateStatus('Ready!');
+    }
+
+    async function getCurrentAccount() {
+        const accounts = await window.web3.eth.getAccounts();
+        return accounts[0];
+    }
+
+    function updateStatus(status) {
+        const statusEl = document.getElementById('status');
+        statusEl.innerHTML = status;
+        console.log(status);
+    }
+
+    function updateElById(id, value) {
+        const playersEl = document.getElementById(id);
+        playersEl.innerHTML = value;
+    }
+    async function loadPlayers() {
+        const players = await window.contract.methods.getPlayers().call();
+        if (players.length == 0){
+            updateElById('players', 'No one');
+        }
+        else {
+            updateElById('players', players.join(', \n'));
+        }
+    }
+
+    async function loadManager() {
+        updateElById('manager', 'fetching the manager...');
+        const manager = await window.contract.methods.manager().call();
+        updateElById('manager', manager);
+    }
+
+    async function enterLottery() {
+        const account = await getCurrentAccount();
+        const res = await window.contract.methods.enter().send({
+            from: account,
+            value: web3.utils.toWei("11", 'milliether'),
+            gas: '100000'});
+    }
+
+    async function pickWinner() {
+        updateElById('pickingStatus', 'Trying to pick');
+        const account = await getCurrentAccount();
+        try{
+        const res = await window.contract.methods.pickWinner().send({
+            from: account,
+            gas: '100000'});
+            updateElById('pickingStatus', 'Picked successfully');
+        } catch (e) {
+            updateElById('pickingStatus', 'Ah, said you. Шt seems you are not the manager.');
+        }
+    }
+
+    async function updatePickingWarning() {
+        const manager = await window.contract.methods.manager().call();
+        const account = await getCurrentAccount();
+        if (manager.toLowerCase() == account.toLowerCase()) {
+            updateElById('pickingWarning', "You can pick winner");
+        } else {
+            updateElById('pickingWarning', "You are not manager, don't press this button.");
+        }
+    }
+
+    async function preparePage() {
+        await load();
+        await loadManager();
+        await updatePickingWarning();
+        const timer = setInterval(loadPlayers, 1000);
+        window.ethereum.on('accountsChanged', updatePickingWarning);
+    }
+    preparePage();
+
+
+</script>
+</body>
+
+</html>
